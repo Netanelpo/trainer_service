@@ -1,0 +1,7 @@
+functions-framework==3.*
+loguru
+flask
+numpy
+openai
+openai-agents
+codename
