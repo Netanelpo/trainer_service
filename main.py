@@ -1,5 +1,5 @@
 import functions_framework
-from flask import make_response
+from flask import make_response, jsonify
 
 @functions_framework.http
 def start(request):
@@ -15,17 +15,19 @@ def start(request):
         'Access-Control-Allow-Origin': '*'
     }
 
-    # ---- Read input ----
     request_json = request.get_json(silent=True)
 
-    if request_json and 'text' in request_json:
-        text = request_json['text']
-    else:
+    if not request_json or 'text' not in request_json:
         return make_response(
-            ('Missing "text" field', 400, response_headers)
+            jsonify({'error': 'Missing "text"'}),
+            400,
+            response_headers
         )
 
-    # ---- Logic ----
-    result = f"Hello {text}!"
+    text = request_json['text']
 
-    return make_response(result, 200, response_headers)
+    return make_response(
+        jsonify({'result': f'Hello {text}!'}),
+        200,
+        response_headers
+    )
