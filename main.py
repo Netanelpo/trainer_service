@@ -13,7 +13,7 @@ from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled, fu
 MODEL = "gpt-5-mini"
 
 client = AsyncOpenAI(
-    api_key=os.environ["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"]
+    api_key="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"
 )
 
 model = OpenAIResponsesModel(
