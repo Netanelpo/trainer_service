@@ -1,11 +1,29 @@
 import os
 import pytest
+from agents import Agent
 from dotenv import load_dotenv
 load_dotenv()
 
-import agent
+from agent_impl import run_agent_once, model
+
 
 pytestmark = pytest.mark.asyncio
+
+agent_ = Agent(
+    name="EnglishWordParser",
+    instructions="""
+You receive a short text.
+Extract all English words only.
+
+Rules:
+- English alphabet only (a–z)
+- Lowercase
+- Remove punctuation and numbers
+- Return as a JSON array of strings
+- No explanations
+""",
+    model=model,
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -20,7 +38,7 @@ def require_api_key():
 async def test_extracts_english_words_basic():
     text = "Hello, World! 123"
 
-    result = await agent.run_agent_once(text)
+    result = await run_agent_once(agent_, text)
 
     assert result == ["hello", "world"]
 
@@ -28,7 +46,7 @@ async def test_extracts_english_words_basic():
 async def test_removes_numbers_and_punctuation():
     text = "This!!! is 99% a testcase."
 
-    result = await agent.run_agent_once(text)
+    result = await run_agent_once(agent_, text)
 
     assert result == ["this", "is", "a", "testcase"]
 
@@ -36,7 +54,7 @@ async def test_removes_numbers_and_punctuation():
 async def test_ignores_non_english_words():
     text = "Hello שלום привет world"
 
-    result = await agent.run_agent_once(text)
+    result = await run_agent_once(agent_, text)
 
     assert result == ["hello", "world"]
 
@@ -44,7 +62,7 @@ async def test_ignores_non_english_words():
 async def test_lowercases_all_words():
     text = "MiXeD CaSe WORDS"
 
-    result = await agent.run_agent_once(text)
+    result = await run_agent_once(agent_, text)
 
     assert result == ["mixed", "case", "words"]
 
@@ -56,8 +74,8 @@ async def test_memory_is_preserved_between_calls():
     and stable continuation behavior).
     """
 
-    first = await agent.run_agent_once("Hello World")
-    second = await agent.run_agent_once("Again!")
+    first = await run_agent_once(agent_, "Hello World")
+    second = await run_agent_once(agent_, "Again!")
 
     assert first == ["hello", "world"]
     assert second == ["again"]
@@ -66,7 +84,7 @@ async def test_memory_is_preserved_between_calls():
 async def test_empty_or_symbol_only_input():
     text = "!!! 123 ###"
 
-    result = await agent.run_agent_once(text)
+    result = await run_agent_once(agent_, text)
 
     assert result == []
 
@@ -77,7 +95,7 @@ async def test_longer_sentence():
     and NEWLINES, plus numbers 42 and symbols $#@!
     """
 
-    result = await agent.run_agent_once(text)
+    result = await run_agent_once(agent_, text)
 
     assert result == [
         "this",

@@ -3,7 +3,8 @@ import asyncio
 import functions_framework
 from flask import jsonify
 
-from agent import run_agent_once
+from agent_impl import run_agent_once, agent
+
 
 # =====================
 # HELPERS
@@ -44,11 +45,11 @@ def start(request):
 
         # ---- Run agent ----
         try:
-            agent_output = asyncio.run(run_agent_once(user_text))
+            agent_output = asyncio.run(run_agent_once(agent, user_text))
         except RuntimeError:
             # Cloud Functions event-loop edge case
             agent_output = asyncio.get_event_loop().run_until_complete(
-                run_agent_once(user_text)
+                run_agent_once(agent, user_text)
             )
 
         return (
