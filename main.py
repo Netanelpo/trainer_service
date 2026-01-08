@@ -34,15 +34,31 @@ def add_numbers(a: int, b: int) -> int:
 # =====================
 # AGENT
 # =====================
+# agent = Agent(
+#     name="MathAgent",
+#     instructions=(
+#         "You are a helpful AI agent. "
+#         "Answer clearly and concisely. "
+#         "Return plain text."
+#     ),
+#     tools=[add_numbers],
+#     model=model
+# )
+
 agent = Agent(
-    name="MathAgent",
-    instructions=(
-        "You are a helpful AI agent. "
-        "Answer clearly and concisely. "
-        "Return plain text."
-    ),
-    tools=[add_numbers],
-    model=model
+    name="EnglishWordParser",
+    instructions="""
+You receive a short text.
+Extract all English words only.
+
+Rules:
+- English alphabet only (a–z)
+- Lowercase
+- Remove punctuation and numbers
+- Return as a JSON array of strings
+- No explanations
+""",
+    model=model,
 )
 
 set_tracing_disabled(True)
