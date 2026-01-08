@@ -1,4 +1,4 @@
-# agent.py
+import json
 import os
 from typing import Optional
 
@@ -60,4 +60,7 @@ async def run_agent_once(user_input: str):
     )
 
     _last_response_id = result.last_response_id
-    return result.final_output
+    output = result.final_output
+    if isinstance(output, str):
+        output = json.loads(output)
+    return output
