@@ -55,7 +55,7 @@ async def run_agent_once(instructions_: str, user_input: str):
         }
 
     try:
-        return json.loads(output)
+        return {"words": json.loads(output)}
     except json.JSONDecodeError:
         return {
             "error": "ERROR: agent returned invalid JSON",
