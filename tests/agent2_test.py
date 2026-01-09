@@ -1,17 +1,15 @@
 import os
+
 import pytest
-from agents import Agent
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from agent_impl import run_agent_once, model
-
+from agent_impl import run_agent_once
 
 pytestmark = pytest.mark.asyncio
 
-agent_ = Agent(
-    name="EnglishWordParser",
-    instructions="""
+instructions = """
 You receive a message from a student.
 
 Your task:
@@ -91,9 +89,7 @@ Input:
 "These are words: a, table, an"
 Output:
 ["table"]
-""",
-    model=model,
-)
+"""
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -103,6 +99,7 @@ def require_api_key():
     """
     if not os.getenv("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY is not set")
+
 
 async def test_words():
     # text = """
@@ -114,7 +111,7 @@ async def test_words():
 
     text = """I want"""
 
-    result = await run_agent_once(agent_, text)
+    result = await run_agent_once(instructions, text)
 
     assert result == [
         "this",
