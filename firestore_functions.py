@@ -28,22 +28,22 @@ def get_agent_instructions(doc_id: str) -> str:
     return first
 
 
-def set_last_response_id(doc_id: str, last_response_id: str) -> None:
+def set_agents_field(doc_id: str, field: str, value: str) -> None:
     """
-    Saves last_response_id into agents/{doc_id}
+    Saves value into the field of agents/{doc_id}
     """
     firestore_.collection("agents").document(doc_id).set(
         {
-            "last_response_id": last_response_id,
+            field: value,
             "updated_at": SERVER_TIMESTAMP,
         },
         merge=True,  # do not overwrite other fields
     )
 
 
-def get_last_response_id(doc_id: str) -> Optional[str]:
+def get_agents_field(doc_id: str, field: str) -> Optional[str]:
     """
-    Reads last_response_id from agents/{doc_id}
+    Reads value from the field of agents/{doc_id}
     Returns None if missing.
     """
     doc_ref = firestore_.collection("agents").document(doc_id)
@@ -52,4 +52,4 @@ def get_last_response_id(doc_id: str) -> Optional[str]:
     if not doc.exists:
         return None
 
-    return doc.to_dict().get("last_response_id")
+    return doc.to_dict().get(field)

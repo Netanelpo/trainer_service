@@ -4,7 +4,7 @@ import os
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
 
-from firestore_functions import get_agent_instructions, get_last_response_id, set_last_response_id
+from firestore_functions import get_agent_instructions, get_agents_field, set_agents_field
 
 # =====================
 # CONFIG
@@ -28,7 +28,6 @@ async def run_agent_once(user_input: str):
     Runs the agent once and returns the final output.
     Keeps conversation memory via response_id.
     """
-    global _last_response_id
 
     agent = Agent(
         name="EnglishWordParser",
@@ -39,10 +38,10 @@ async def run_agent_once(user_input: str):
     result = await Runner.run(
         starting_agent=agent,
         input=user_input,
-        previous_response_id=get_last_response_id("EnglishWordParser"),
+        previous_response_id=get_agents_field("EnglishWordParser", "last_response_id"),
     )
 
-    set_last_response_id("EnglishWordParser", result.last_response_id)
+    set_agents_field("EnglishWordParser", "last_response_id", result.last_response_id)
     output = result.final_output
     print(output)
     if output.startswith("ERROR"):
@@ -51,7 +50,7 @@ async def run_agent_once(user_input: str):
         }
 
     try:
-        return {"new_words": json.loads(output), "old_words": []}
+        return {"new_words": json.loads(output)}
     except json.JSONDecodeError:
         return {
             "error": "ERROR: agent returned invalid JSON",

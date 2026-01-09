@@ -4,6 +4,7 @@ import functions_framework
 from flask import jsonify, Response
 
 from agent_impl import run_agent_once
+from firestore_functions import get_agents_field
 
 
 # =====================
@@ -44,6 +45,7 @@ def start(request):
                 run_agent_once(user_text)
             )
 
+        agent_output["old_words"] = get_agents_field("EnglishWordParser", "words") or ["sleep"]
         return response_tuple(agent_output, 200)
 
     except Exception as e:
