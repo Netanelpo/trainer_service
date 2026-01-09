@@ -4,7 +4,7 @@ import functions_framework
 from flask import jsonify, Response
 
 from agent_impl import run_agent_once
-from firestore_functions import get_agents_field
+from firestore_functions import get_agents_field, set_agents_field
 
 
 # =====================
@@ -45,7 +45,7 @@ def start(request):
                 run_agent_once(user_text)
             )
 
-        agent_output["old_words"] = get_agents_field("EnglishWordParser", "words") or ["sleep"]
+        agent_output["old_words"] = get_agents_field("EnglishWordParser", "words") or []
         return response_tuple(agent_output, 200)
 
     except Exception as e:
@@ -58,3 +58,47 @@ def response_tuple(json_, status) -> tuple[Response, int, dict[str, str]]:
         status,
         cors_headers(),
     )
+
+
+@functions_framework.http
+def start_training(request):
+    # ---- CORS PREFLIGHT ----
+    if request.method == "OPTIONS":
+        return "", 204, cors_headers()
+
+    try:
+        data = request.get_json(silent=True) or {}
+        words = data.get("words")
+
+        # ---- TRAIN OLD WORDS (no payload) ----
+        if words is None:
+            return response_tuple({
+                "ok": True,
+            }, 200)
+
+        # ---- VALIDATE WORDS ----
+        if not isinstance(words, list) or not all(isinstance(w, str) and w.strip() for w in words):
+            return response_tuple({
+                "error": "ERROR: 'words' must be a list of non-empty strings",
+            },
+                400)
+
+        # Normalize
+        words = list(dict.fromkeys(w.strip().lower() for w in words))
+
+        # ---- SAVE NEW WORDS ----
+        set_agents_field("EnglishWordParser", "words", words)
+        return response_tuple(
+            {
+                "ok": True,
+            },
+            200,
+        )
+
+    except Exception as e:
+        return response_tuple(
+            {
+                "error": f"ERROR: internal server error ({str(e)})",
+            },
+            500,
+        )
