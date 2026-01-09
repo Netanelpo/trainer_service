@@ -1,11 +1,10 @@
 import json
 import os
-from typing import Optional
 
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
 
-from instructions_impl import get_agent_instructions
+from firestore_functions import get_agent_instructions, get_last_response_id, set_last_response_id
 
 # =====================
 # CONFIG
@@ -22,11 +21,6 @@ model = OpenAIResponsesModel(
 )
 
 set_tracing_disabled(True)
-
-# =====================
-# MEMORY (per instance)
-# =====================
-_last_response_id: Optional[str] = None
 
 
 async def run_agent_once(user_input: str):
@@ -45,10 +39,10 @@ async def run_agent_once(user_input: str):
     result = await Runner.run(
         starting_agent=agent,
         input=user_input,
-        previous_response_id=_last_response_id,
+        previous_response_id=get_last_response_id("EnglishWordParser"),
     )
 
-    _last_response_id = result.last_response_id
+    set_last_response_id("EnglishWordParser", result.last_response_id)
     output = result.final_output
     print(output)
     if output.startswith("ERROR"):
