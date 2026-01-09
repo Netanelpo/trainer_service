@@ -5,6 +5,8 @@ from typing import Optional
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
 
+from instructions_impl import get_agent_instructions
+
 # =====================
 # CONFIG
 # =====================
@@ -27,7 +29,7 @@ set_tracing_disabled(True)
 _last_response_id: Optional[str] = None
 
 
-async def run_agent_once(instructions_: str, user_input: str):
+async def run_agent_once(user_input: str):
     """
     Runs the agent once and returns the final output.
     Keeps conversation memory via response_id.
@@ -36,7 +38,7 @@ async def run_agent_once(instructions_: str, user_input: str):
 
     agent = Agent(
         name="EnglishWordParser",
-        instructions=instructions_,
+        instructions=get_agent_instructions("EnglishWordParser"),
         model=model,
     )
 

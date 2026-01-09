@@ -5,3 +5,4 @@ numpy
 openai
 openai-agents
 codename
+google-cloud-firestore
