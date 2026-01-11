@@ -1,10 +1,11 @@
 import asyncio
+from typing import Any
+from typing import Dict
 
 import functions_framework
 from flask import jsonify, Response
 
 from agent_impl import run_agent
-from firestore_functions import get_config_field
 
 
 # =====================
@@ -44,7 +45,6 @@ def start(request):
                 {
                     "output": "Invalid request format.",
                     "context": {},
-                    "next_stage": False,
                 },
                 200,
             )
@@ -58,7 +58,6 @@ def start(request):
                 {
                     "output": "Invalid context.",
                     "context": {},
-                    "next_stage": False,
                 },
                 200,
             )
@@ -68,23 +67,15 @@ def start(request):
                 {
                     "output": "Please enter some input.",
                     "context": current_context,
-                    "next_stage": False,
                 },
                 200,
             )
 
-        # Get active agent
-        agent_id = get_config_field("manager_agent", "agent_id")
+        result = run_agent_impl("manager_agent", current_context, user_input)
 
-        # ---- Run agent ----
-        try:
-            result = asyncio.run(run_agent(agent_id, user_input, current_context))
-        except RuntimeError:
-            result = asyncio.get_event_loop().run_until_complete(
-                run_agent(agent_id, user_input, current_context)
-            )
+        if result["next_stage"]:
+            result = run_agent_impl("trainer_agent", result["context"], "")
 
-        # result is already validated and safe
         return response_tuple(result, 200)
 
     except Exception as e:
@@ -92,7 +83,15 @@ def start(request):
             {
                 "output": f"Internal server error: {str(e)}",
                 "context": {},
-                "next_stage": False,
             },
             200,
+        )
+
+
+def run_agent_impl(agent_stage, current_context: Dict[str, Any], user_input: str) -> Dict[str, Any]:
+    try:
+        return asyncio.run(run_agent(agent_stage, user_input, current_context))
+    except RuntimeError:
+        return asyncio.get_event_loop().run_until_complete(
+            run_agent(agent_stage, user_input, current_context)
         )

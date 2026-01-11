@@ -24,7 +24,7 @@ model = OpenAIResponsesModel(
 set_tracing_disabled(True)
 
 
-async def run_agent(agent_id: str, input: str, current_context: Dict[str, Any]):
+async def run_agent(agent_stage: str, input: str, current_context: Dict[str, Any]):
     """
     Always returns:
     {
@@ -34,6 +34,7 @@ async def run_agent(agent_id: str, input: str, current_context: Dict[str, Any]):
     }
     """
 
+    agent_id = get_config_field(agent_stage, "agent_id")
     instructions = get_agents_field(agent_id, "instructions")
     if not instructions:
         return {
