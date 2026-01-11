@@ -1,4 +1,3 @@
-import json
 import os
 
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
@@ -22,13 +21,16 @@ model = OpenAIResponsesModel(
 
 set_tracing_disabled(True)
 
+import json
+
 
 async def run_agent_once(user_input: str, current_words: list[str]):
     """
     Always returns:
     {
       "output": "...",
-      "words": [...]
+      "words": [...],
+      "start_training": true | false
     }
     """
 
@@ -52,34 +54,45 @@ async def run_agent_once(user_input: str, current_words: list[str]):
     )
 
     raw = result.final_output
+    print(raw)
 
     # Must be text
     if not isinstance(raw, str):
         return {
             "output": "Internal error: agent returned non-text output.",
             "words": current_words,
+            "start_training": False,
         }
 
-    # Must be JSON
+    # Must be valid JSON
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         return {
             "output": "Internal error: agent returned invalid JSON.",
             "words": current_words,
+            "start_training": False,
         }
 
-    # Validate shape
+    # Validate fields
     output = data.get("output")
     words = data.get("words")
+    start_training = data.get("start_training")
 
-    if not isinstance(output, str) or not isinstance(words, list) or not all(isinstance(w, str) for w in words):
+    if (
+            not isinstance(output, str)
+            or not isinstance(words, list)
+            or not all(isinstance(w, str) for w in words)
+            or not isinstance(start_training, bool)
+    ):
         return {
             "output": "Internal error: agent returned invalid response format.",
             "words": current_words,
+            "start_training": False,
         }
 
     return {
         "output": output,
         "words": words,
+        "start_training": start_training,
     }
