@@ -60,7 +60,7 @@ def get_field(
         doc_id: str,
         field: str,
 ):
-    doc_ref = firestore_.collection("collection").document(doc_id)
+    doc_ref = firestore_.collection(collection).document(doc_id)
     doc: DocumentSnapshot = doc_ref.get()
 
     if not doc.exists:
