@@ -1,4 +1,6 @@
+import json
 import os
+from typing import Dict, Any
 
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
@@ -21,21 +23,24 @@ model = OpenAIResponsesModel(
 
 set_tracing_disabled(True)
 
-import json
 
-
-async def run_agent_once(user_input: str, current_words: list[str]):
+async def run_agent(agent_id: str, input: str, current_context: Dict[str, Any]):
     """
     Always returns:
     {
       "output": "...",
-      "words": [...],
-      "start_training": true | false
+      "context": { ... },
+      "next_stage": true | false
     }
     """
 
-    agent_id = get_config_field("active_agent", "agent_id")
     instructions = get_agents_field(agent_id, "instructions")
+    if not instructions:
+        return {
+            "output": f"Internal error: no instructions configured for agent '{agent_id}'.",
+            "context": current_context,
+            "next_stage": False,
+        }
 
     agent = Agent(
         name=agent_id,
@@ -44,8 +49,8 @@ async def run_agent_once(user_input: str, current_words: list[str]):
     )
 
     agent_input = {
-        "text": user_input,
-        "current_words": current_words,
+        "input": input,
+        "current_context": current_context,
     }
 
     result = await Runner.run(
@@ -60,8 +65,8 @@ async def run_agent_once(user_input: str, current_words: list[str]):
     if not isinstance(raw, str):
         return {
             "output": "Internal error: agent returned non-text output.",
-            "words": current_words,
-            "start_training": False,
+            "context": current_context,
+            "next_stage": False,
         }
 
     # Must be valid JSON
@@ -70,29 +75,37 @@ async def run_agent_once(user_input: str, current_words: list[str]):
     except json.JSONDecodeError:
         return {
             "output": "Internal error: agent returned invalid JSON.",
-            "words": current_words,
-            "start_training": False,
+            "context": current_context,
+            "next_stage": False,
         }
 
     # Validate fields
     output = data.get("output")
-    words = data.get("words")
-    start_training = data.get("start_training")
+    context = data.get("context")
+    next_stage = data.get("next_stage")
 
     if (
-            not isinstance(output, str)
-            or not isinstance(words, list)
-            or not all(isinstance(w, str) for w in words)
-            or not isinstance(start_training, bool)
+        not isinstance(output, str)
+        or not isinstance(context, dict)
+        or not isinstance(next_stage, bool)
     ):
         return {
             "output": "Internal error: agent returned invalid response format.",
-            "words": current_words,
-            "start_training": False,
+            "context": current_context,
+            "next_stage": False,
         }
+
+    # Prevent dropping existing state keys
+    for key in current_context:
+        if key not in context:
+            return {
+                "output": "Internal error: agent removed context fields.",
+                "context": current_context,
+                "next_stage": False,
+            }
 
     return {
         "output": output,
-        "words": words,
-        "start_training": start_training,
+        "context": context,
+        "next_stage": next_stage,
     }

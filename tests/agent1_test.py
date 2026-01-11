@@ -4,7 +4,7 @@ from agents import Agent
 from dotenv import load_dotenv
 load_dotenv()
 
-from agent_impl import run_agent_once, model
+from agent_impl import run_agent, model
 
 
 pytestmark = pytest.mark.asyncio
@@ -38,7 +38,7 @@ def require_api_key():
 async def test_extracts_english_words_basic():
     text = "Hello, World! 123"
 
-    result = await run_agent_once(agent_, text)
+    result = await run_agent(agent_, text)
 
     assert result == ["hello", "world"]
 
@@ -46,7 +46,7 @@ async def test_extracts_english_words_basic():
 async def test_removes_numbers_and_punctuation():
     text = "This!!! is 99% a testcase."
 
-    result = await run_agent_once(agent_, text)
+    result = await run_agent(agent_, text)
 
     assert result == ["this", "is", "a", "testcase"]
 
@@ -54,7 +54,7 @@ async def test_removes_numbers_and_punctuation():
 async def test_ignores_non_english_words():
     text = "Hello שלום привет world"
 
-    result = await run_agent_once(agent_, text)
+    result = await run_agent(agent_, text)
 
     assert result == ["hello", "world"]
 
@@ -62,7 +62,7 @@ async def test_ignores_non_english_words():
 async def test_lowercases_all_words():
     text = "MiXeD CaSe WORDS"
 
-    result = await run_agent_once(agent_, text)
+    result = await run_agent(agent_, text)
 
     assert result == ["mixed", "case", "words"]
 
@@ -74,8 +74,8 @@ async def test_memory_is_preserved_between_calls():
     and stable continuation behavior).
     """
 
-    first = await run_agent_once(agent_, "Hello World")
-    second = await run_agent_once(agent_, "Again!")
+    first = await run_agent(agent_, "Hello World")
+    second = await run_agent(agent_, "Again!")
 
     assert first == ["hello", "world"]
     assert second == ["again"]
@@ -84,7 +84,7 @@ async def test_memory_is_preserved_between_calls():
 async def test_empty_or_symbol_only_input():
     text = "!!! 123 ###"
 
-    result = await run_agent_once(agent_, text)
+    result = await run_agent(agent_, text)
 
     assert result == []
 
@@ -95,7 +95,7 @@ async def test_longer_sentence():
     and NEWLINES, plus numbers 42 and symbols $#@!
     """
 
-    result = await run_agent_once(agent_, text)
+    result = await run_agent(agent_, text)
 
     assert result == [
         "this",

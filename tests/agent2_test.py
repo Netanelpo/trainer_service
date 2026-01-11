@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from agent_impl import run_agent_once
+from agent_impl import run_agent
 
 pytestmark = pytest.mark.asyncio
 
@@ -111,7 +111,7 @@ async def test_words():
 
     text = """I want"""
 
-    result = await run_agent_once(instructions, text)
+    result = await run_agent(instructions, text)
 
     assert result == [
         "this",
