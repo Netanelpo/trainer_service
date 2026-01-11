@@ -39,52 +39,39 @@ def start(request):
     try:
         raw = request.get_json(silent=True)
 
-        # Must be object
+        # Must be a dict
         if not isinstance(raw, dict):
             return response_tuple(
-                {
-                    "output": "Invalid request format.",
-                    "context": {},
-                },
-                200,
+                {"output": "Invalid request format."},
+                400,
             )
 
         user_input = (raw.get("input") or "").strip()
         current_context = raw.get("current_context") or {}
 
-        # Validate context
         if not isinstance(current_context, dict):
             return response_tuple(
-                {
-                    "output": "Invalid context.",
-                    "context": {},
-                },
-                200,
+                {"output": "Invalid context."},
+                400,
             )
 
         if not user_input:
             return response_tuple(
-                {
-                    "output": "Please enter some input.",
-                    "context": current_context,
-                },
-                200,
+                {"output": "Please enter some input."},
+                400,
             )
 
         result = run_agent_impl("manager_agent", current_context, user_input)
 
-        if result["next_stage"]:
+        if result.get("next_stage"):
             result = run_agent_impl("trainer_agent", result["context"], "")
 
         return response_tuple(result, 200)
 
     except Exception as e:
         return response_tuple(
-            {
-                "output": f"Internal server error: {str(e)}",
-                "context": {},
-            },
-            200,
+            {"output": f"Internal server error: {str(e)}"},
+            500,
         )
 
 
