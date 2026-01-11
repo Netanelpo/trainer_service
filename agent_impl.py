@@ -4,7 +4,7 @@ import os
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
 
-from firestore_functions import get_agent_instructions, get_agents_field, set_agents_field
+from firestore_functions import get_agents_field
 
 # =====================
 # CONFIG
@@ -23,35 +23,62 @@ model = OpenAIResponsesModel(
 set_tracing_disabled(True)
 
 
-async def run_agent_once(user_input: str):
+async def run_agent_once(user_input: str, current_words: list[str]):
     """
-    Runs the agent once and returns the final output.
-    Keeps conversation memory via response_id.
+    Always returns:
+    {
+      "output": "...",
+      "words": [...]
+    }
     """
+
+    instructions = get_agents_field("EnglishWordParser", "instructions")
 
     agent = Agent(
         name="EnglishWordParser",
-        instructions=get_agent_instructions("EnglishWordParser"),
+        instructions=instructions,
         model=model,
     )
 
+    agent_input = {
+        "text": user_input,
+        "current_words": current_words,
+    }
+
     result = await Runner.run(
         starting_agent=agent,
-        input=user_input,
-        previous_response_id=get_agents_field("EnglishWordParser", "last_response_id"),
+        input=json.dumps(agent_input),
     )
 
-    set_agents_field("EnglishWordParser", "last_response_id", result.last_response_id)
-    output = result.final_output
-    print(output)
-    if output.startswith("ERROR"):
+    raw = result.final_output
+
+    # Must be text
+    if not isinstance(raw, str):
         return {
-            "error": output,
+            "output": "Internal error: agent returned non-text output.",
+            "words": current_words,
         }
 
+    # Must be JSON
     try:
-        return {"new_words": json.loads(output)}
+        data = json.loads(raw)
     except json.JSONDecodeError:
         return {
-            "error": "ERROR: agent returned invalid JSON",
+            "output": "Internal error: agent returned invalid JSON.",
+            "words": current_words,
         }
+
+    # Validate shape
+    output = data.get("output")
+    words = data.get("words")
+
+    if not isinstance(output, str) or not isinstance(words, list) or not all(isinstance(w, str) for w in words):
+        return {
+            "output": "Internal error: agent returned invalid response format.",
+            "words": current_words,
+        }
+
+    return {
+        "output": output,
+        "words": words,
+    }
