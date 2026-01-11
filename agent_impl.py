@@ -4,7 +4,7 @@ import os
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
 
-from firestore_functions import get_agents_field
+from firestore_functions import get_agents_field, get_config_field
 
 # =====================
 # CONFIG
@@ -32,10 +32,11 @@ async def run_agent_once(user_input: str, current_words: list[str]):
     }
     """
 
-    instructions = get_agents_field("EnglishWordParser", "instructions")
+    agent_id = get_config_field("active_agent", "agent_id")
+    instructions = get_agents_field(agent_id, "instructions")
 
     agent = Agent(
-        name="EnglishWordParser",
+        name=agent_id,
         instructions=instructions,
         model=model,
     )

@@ -28,7 +28,7 @@ def start(request):
 
     try:
         data = request.get_json(silent=True) or {}
-
+        print(data)
         user_text = (data.get("text") or "").strip()
         current_words = data.get("words") or []
 

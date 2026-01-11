@@ -45,7 +45,22 @@ def get_agents_field(
     - list[str]
     - None (if missing or document does not exist)
     """
-    doc_ref = firestore_.collection("agents").document(doc_id)
+    return get_field("agents", doc_id, field)
+
+
+def get_config_field(
+        doc_id: str,
+        field: str,
+):
+    return get_field("config", doc_id, field)
+
+
+def get_field(
+        collection: str,
+        doc_id: str,
+        field: str,
+):
+    doc_ref = firestore_.collection("collection").document(doc_id)
     doc: DocumentSnapshot = doc_ref.get()
 
     if not doc.exists:
