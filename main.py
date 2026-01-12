@@ -35,6 +35,7 @@ def start(request):
 
     try:
         raw = request.get_json(silent=True)
+        print("RAW REQUEST:", raw)
 
         if not isinstance(raw, dict):
             return response_tuple({"output": "Invalid request format."}, 400)
@@ -42,26 +43,45 @@ def start(request):
         user_input = (raw.get("input") or "").strip()
         context = raw.get("context") or {}
 
+        print("USER INPUT:", user_input)
+        print("INCOMING CONTEXT:", context)
+
         if not isinstance(context, dict):
             return response_tuple({"output": "Invalid context."}, 400)
 
         if not user_input:
             return response_tuple({"output": "Please enter some input."}, 400)
 
-        context.setdefault("stage", "planner")
+        # Default stage
+        if "stage" not in context:
+            context["stage"] = "planner"
 
-        prev_stage = None
+        # ---------- RUN FIRST AGENT ----------
+        stage_before = context["stage"]
+        print("RUNNING AGENT:", stage_before)
 
-        while True:
-            stage = context.get("stage")
-            result = run_agent_impl(stage, context, user_input)
-            context = result["context"]
+        result = run_agent_impl(stage_before, context, user_input)
 
-            if context.get("stage") == prev_stage:
-                return response_tuple(result, 200)
+        print("AGENT RESULT:", result)
 
-            prev_stage = stage
-            user_input = ""
+        new_context = result["context"]
+        stage_after = new_context.get("stage")
+
+        print("STAGE BEFORE:", stage_before)
+        print("STAGE AFTER:", stage_after)
+
+        # ---------- RUN SECOND AGENT IF STAGE CHANGED ----------
+        if stage_after != stage_before:
+            print("STAGE CHANGED → RUNNING NEW AGENT:", stage_after)
+
+            second_result = run_agent_impl(stage_after, new_context, "")
+            print("SECOND AGENT RESULT:", second_result)
+
+            return response_tuple(second_result, 200)
+
+        # ---------- NO STAGE CHANGE ----------
+        return response_tuple(result, 200)
 
     except Exception as e:
+        print("SERVER ERROR:", str(e))
         return response_tuple({"output": f"Internal server error: {str(e)}"}, 500)
