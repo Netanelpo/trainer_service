@@ -7,9 +7,6 @@ from openai import AsyncOpenAI
 
 from firestore_functions import get_agents_field, get_config_field
 
-# =====================
-# CONFIG
-# =====================
 MODEL = "gpt-5-mini"
 
 _client = AsyncOpenAI(
@@ -24,23 +21,16 @@ model = OpenAIResponsesModel(
 set_tracing_disabled(True)
 
 
-async def run_agent(agent_stage: str, input: str, current_context: Dict[str, Any]):
-    """
-    Always returns:
-    {
-      "output": "...",
-      "context": { ... },
-      "next_stage": true | false
-    }
-    """
-
+async def run_agent(agent_stage: str, user_input: str, context: Dict[str, Any]) -> Dict[str, Any]:
     agent_id = get_config_field(agent_stage, "agent_id")
-    instructions = get_agents_field(agent_id, "instructions")
+    shared_instructions = get_agents_field("shared", "instructions")
+    specific_instructions = get_agents_field(agent_id, "instructions")
+    instructions = shared_instructions + "\n" + specific_instructions
+
     if not instructions:
         return {
             "output": f"Internal error: no instructions configured for agent '{agent_id}'.",
-            "context": current_context,
-            "next_stage": False,
+            "context": context,
         }
 
     agent = Agent(
@@ -50,8 +40,8 @@ async def run_agent(agent_stage: str, input: str, current_context: Dict[str, Any
     )
 
     agent_input = {
-        "input": input,
-        "current_context": current_context,
+        "input": user_input,
+        "context": context,
     }
 
     result = await Runner.run(
@@ -60,53 +50,38 @@ async def run_agent(agent_stage: str, input: str, current_context: Dict[str, Any
     )
 
     raw = result.final_output
-    print(raw)
 
-    # Must be text
     if not isinstance(raw, str):
         return {
             "output": "Internal error: agent returned non-text output.",
-            "context": current_context,
-            "next_stage": False,
+            "context": context,
         }
 
-    # Must be valid JSON
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         return {
             "output": "Internal error: agent returned invalid JSON.",
-            "context": current_context,
-            "next_stage": False,
+            "context": context,
         }
 
-    # Validate fields
     output = data.get("output")
-    context = data.get("context")
-    next_stage = data.get("next_stage")
+    new_context = data.get("context")
 
-    if (
-        not isinstance(output, str)
-        or not isinstance(context, dict)
-        or not isinstance(next_stage, bool)
-    ):
+    if not isinstance(output, str) or not isinstance(new_context, dict):
         return {
             "output": "Internal error: agent returned invalid response format.",
-            "context": current_context,
-            "next_stage": False,
+            "context": context,
         }
 
-    # Prevent dropping existing state keys
-    for key in current_context:
-        if key not in context:
+    for key in context:
+        if key not in new_context:
             return {
                 "output": "Internal error: agent removed context fields.",
-                "context": current_context,
-                "next_stage": False,
+                "context": context,
             }
 
     return {
         "output": output,
-        "context": context,
-        "next_stage": next_stage,
+        "context": new_context,
     }
