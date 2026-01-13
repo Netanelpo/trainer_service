@@ -28,40 +28,59 @@ def run_agent_impl(agent_id: str, context: Dict[str, Any], user_input: str) -> D
         )
 
 
+def parse_raw(raw):
+    print("RAW REQUEST:", raw)
+
+    if not isinstance(raw, dict):
+        raise ValueError("Invalid request format.")
+
+    user_input = (raw.get("input") or "").strip()
+    context = raw.get("context") or {}
+
+    if not isinstance(context, dict):
+        raise ValueError("Invalid context.")
+
+    stage = context.get("stage")
+
+    print("USER INPUT:", user_input)
+    print("CONTEXT:", context)
+
+    if not stage:
+        if user_input:
+            raise ValueError("Input not allowed before stage is initialized.")
+    else:
+        if not user_input:
+            raise ValueError("Input required when stage is set.")
+
+    return user_input, context
+
+
+def first_message():
+    return response_tuple({
+        "output": "Please choose your learning language.",
+        "context": {
+            "stage": "language",
+            "language": "",
+            "words": []
+        }
+    }, 200)
+
+
 @functions_framework.http
 def start(request):
     if request.method == "OPTIONS":
         return "", 204, cors_headers()
 
     try:
-        raw = request.get_json(silent=True)
-        print("RAW REQUEST:", raw)
+        user_input, context = parse_raw(request.get_json(silent=True))
 
-        if not isinstance(raw, dict):
-            return response_tuple({"output": "Invalid request format."}, 400)
-
-        user_input = (raw.get("input") or "").strip()
-        context = raw.get("context") or {}
-
-        print("USER INPUT:", user_input)
-        print("INCOMING CONTEXT:", context)
-
-        if not isinstance(context, dict):
-            return response_tuple({"output": "Invalid context."}, 400)
-
-        if not user_input:
-            return response_tuple({"output": "Please enter some input."}, 400)
-
-        # Default stage
-        if "stage" not in context:
-            context["stage"] = "planner"
-
-        # ---------- RUN FIRST AGENT ----------
         stage_before = context["stage"]
+        if not stage_before:
+            return first_message()
+
         print("RUNNING AGENT:", stage_before)
 
         result = run_agent_impl(stage_before, context, user_input)
-
         print("AGENT RESULT:", result)
 
         new_context = result["context"]
@@ -70,18 +89,20 @@ def start(request):
         print("STAGE BEFORE:", stage_before)
         print("STAGE AFTER:", stage_after)
 
-        # ---------- RUN SECOND AGENT IF STAGE CHANGED ----------
         if stage_after != stage_before:
-            print("STAGE CHANGED → RUNNING NEW AGENT:", stage_after)
+            print("STAGE CHANGED → RUNNING:", stage_after)
 
-            second_result = run_agent_impl(stage_after, new_context, "")
-            print("SECOND AGENT RESULT:", second_result)
+            second = run_agent_impl(stage_after, new_context, "")
+            print("SECOND RESULT:", second)
 
-            return response_tuple(second_result, 200)
+            return response_tuple(second, 200)
 
-        # ---------- NO STAGE CHANGE ----------
         return response_tuple(result, 200)
+
+    except ValueError as e:
+        print("CLIENT ERROR:", str(e))
+        return response_tuple({"output": str(e)}, 400)
 
     except Exception as e:
         print("SERVER ERROR:", str(e))
-        return response_tuple({"output": f"Internal server error: {str(e)}"}, 500)
+        return response_tuple({"output": "Internal server error."}, 500)

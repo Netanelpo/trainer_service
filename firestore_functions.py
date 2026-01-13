@@ -48,6 +48,13 @@ def get_agents_field(
     return get_field("agents", doc_id, field)
 
 
+def get_stages_field(
+        doc_id: str,
+        field: str,
+):
+    return get_field("stages", doc_id, field)
+
+
 def get_config_field(
         doc_id: str,
         field: str,

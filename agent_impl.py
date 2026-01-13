@@ -5,16 +5,14 @@ from typing import Dict, Any
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
 
-from firestore_functions import get_agents_field, get_config_field
-
-MODEL = "gpt-5-mini"
+from firestore_functions import get_agents_field, get_stages_field, get_config_field
 
 _client = AsyncOpenAI(
     api_key=os.environ["OPENAI_API_KEY"]
 )
 
 model = OpenAIResponsesModel(
-    model=MODEL,
+    model=get_config_field("agents", "model"),
     openai_client=_client
 )
 
@@ -22,10 +20,8 @@ set_tracing_disabled(True)
 
 
 async def run_agent(agent_stage: str, user_input: str, context: Dict[str, Any]) -> Dict[str, Any]:
-    agent_id = get_config_field(agent_stage, "agent_id")
-    shared_instructions = get_agents_field("shared", "instructions")
-    specific_instructions = get_agents_field(agent_id, "instructions")
-    instructions = shared_instructions + "\n" + specific_instructions
+    agent_id = get_stages_field(agent_stage, "agent_id")
+    instructions = get_agents_field(agent_id, "instructions")
 
     if not instructions:
         return {
@@ -49,8 +45,10 @@ async def run_agent(agent_stage: str, user_input: str, context: Dict[str, Any]) 
         input=json.dumps(agent_input),
     )
 
-    raw = result.final_output
+    return return_ouput(context, result.final_output)
 
+
+def return_ouput(context: dict[str, Any], raw) -> dict[str, str | dict]:
     if not isinstance(raw, str):
         return {
             "output": "Internal error: agent returned non-text output.",
