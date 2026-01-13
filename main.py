@@ -1,5 +1,4 @@
 import asyncio
-from typing import Any, Dict
 
 import functions_framework
 from flask import jsonify, Response
@@ -91,5 +90,5 @@ def start(request):
     except ValueError as e:
         return response_tuple({"output": str(e)}, 400)
 
-    except Exception:
-        return response_tuple({"output": "Internal server error."}, 500)
+    except Exception as e:
+        return response_tuple({"output": str(e)}, 500)

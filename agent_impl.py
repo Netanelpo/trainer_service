@@ -1,6 +1,4 @@
-import json
 import os
-from typing import Dict, Any
 
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
@@ -23,11 +21,11 @@ set_tracing_disabled(True)
 async def run_agent(agent_stage: str, user_input: str) -> AgentOutput:
     agent_id = get_stages_field(agent_stage, "agent_id")
     if not agent_id:
-        raise RuntimeError(f"No agent_id configured for stage '{agent_stage}'")
+        raise ValueError(f"No agent_id configured for stage '{agent_stage}'")
 
     instructions = get_agents_field(agent_id, "instructions")
     if not instructions:
-        raise RuntimeError(f"No instructions configured for agent '{agent_id}'")
+        raise ValueError(f"No instructions configured for agent '{agent_id}'")
 
     agent = Agent(
         name=agent_id,
@@ -36,18 +34,15 @@ async def run_agent(agent_stage: str, user_input: str) -> AgentOutput:
         output_type=AgentOutput,
     )
 
-    try:
-        result = await Runner.run(
-            starting_agent=agent,
-            input=user_input,
-        )
-    except Exception as e:
-        raise RuntimeError("Agent execution failed") from e
+    result = await Runner.run(
+        starting_agent=agent,
+        input=user_input,
+    )
 
     output = result.final_output
 
     if not isinstance(output, AgentOutput):
-        raise RuntimeError(
+        raise ValueError(
             f"Agent '{agent_id}' violated output contract: "
             f"expected AgentOutput, got {type(output).__name__}"
         )
