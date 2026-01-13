@@ -45,13 +45,6 @@ def parse_raw(raw):
     print("USER INPUT:", user_input)
     print("CONTEXT:", context)
 
-    if not stage:
-        if user_input:
-            raise ValueError("Input not allowed before stage is initialized.")
-    else:
-        if not user_input:
-            raise ValueError("Input required when stage is set.")
-
     return user_input, context
 
 
