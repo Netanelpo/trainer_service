@@ -74,10 +74,10 @@ def start(request):
     try:
         user_input, context = parse_raw(request.get_json(silent=True))
 
-        stage_before = context.get("stage")
-        if not stage_before:
+        if not user_input:
             return first_message()
 
+        stage_before = context["stage"]
         print("RUNNING AGENT:", stage_before)
 
         result = run_agent_impl(stage_before, context, user_input)
