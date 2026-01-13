@@ -5,6 +5,7 @@ from typing import Dict, Any
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
 from openai import AsyncOpenAI
 
+from agent_ouput import AgentOutput
 from firestore_functions import get_agents_field, get_stages_field, get_config_field
 
 _client = AsyncOpenAI(
@@ -19,67 +20,36 @@ model = OpenAIResponsesModel(
 set_tracing_disabled(True)
 
 
-async def run_agent(agent_stage: str, user_input: str, context: Dict[str, Any]) -> Dict[str, Any]:
+async def run_agent(agent_stage: str, user_input: str) -> AgentOutput:
     agent_id = get_stages_field(agent_stage, "agent_id")
-    instructions = get_agents_field(agent_id, "instructions")
+    if not agent_id:
+        raise RuntimeError(f"No agent_id configured for stage '{agent_stage}'")
 
+    instructions = get_agents_field(agent_id, "instructions")
     if not instructions:
-        return {
-            "output": f"Internal error: no instructions configured for agent '{agent_id}'.",
-            "context": context,
-        }
+        raise RuntimeError(f"No instructions configured for agent '{agent_id}'")
 
     agent = Agent(
         name=agent_id,
         instructions=instructions,
         model=model,
+        output_type=AgentOutput,
     )
-
-    agent_input = {
-        "input": user_input,
-        "context": context,
-    }
-
-    result = await Runner.run(
-        starting_agent=agent,
-        input=json.dumps(agent_input),
-    )
-
-    return return_ouput(context, result.final_output)
-
-
-def return_ouput(context: dict[str, Any], raw) -> dict[str, str | dict]:
-    if not isinstance(raw, str):
-        return {
-            "output": "Internal error: agent returned non-text output.",
-            "context": context,
-        }
 
     try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {
-            "output": "Internal error: agent returned invalid JSON.",
-            "context": context,
-        }
+        result = await Runner.run(
+            starting_agent=agent,
+            input=user_input,
+        )
+    except Exception as e:
+        raise RuntimeError("Agent execution failed") from e
 
-    output = data.get("output")
-    new_context = data.get("context")
+    output = result.final_output
 
-    if not isinstance(output, str) or not isinstance(new_context, dict):
-        return {
-            "output": "Internal error: agent returned invalid response format.",
-            "context": context,
-        }
+    if not isinstance(output, AgentOutput):
+        raise RuntimeError(
+            f"Agent '{agent_id}' violated output contract: "
+            f"expected AgentOutput, got {type(output).__name__}"
+        )
 
-    for key in context:
-        if key not in new_context:
-            return {
-                "output": "Internal error: agent removed context fields.",
-                "context": context,
-            }
-
-    return {
-        "output": output,
-        "context": new_context,
-    }
+    return output
