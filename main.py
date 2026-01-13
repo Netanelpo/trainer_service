@@ -74,7 +74,7 @@ def start(request):
     try:
         user_input, context = parse_raw(request.get_json(silent=True))
 
-        stage_before = context["stage"]
+        stage_before = context.get("stage")
         if not stage_before:
             return first_message()
 
