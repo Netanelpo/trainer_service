@@ -1,4 +1,5 @@
 import asyncio
+from typing import Dict, Any
 
 import functions_framework
 from flask import jsonify, Response
@@ -20,12 +21,12 @@ def response_tuple(json_, status) -> tuple[Response, int, dict[str, str]]:
     return jsonify(json_), status, cors_headers()
 
 
-def run_agent_impl(agent_id: str, user_input: str) -> AgentOutput:
+def run_agent_impl(context: Dict[str, str], user_input: str) -> AgentOutput:
     try:
-        return asyncio.run(run_agent(agent_id, user_input))
+        return asyncio.run(run_agent(context, user_input))
     except RuntimeError:
         return asyncio.get_event_loop().run_until_complete(
-            run_agent(agent_id, user_input)
+            run_agent(context, user_input)
         )
 
 
@@ -77,7 +78,7 @@ def start(request):
                 200,
             )
 
-        result: AgentOutput = run_agent_impl(context["stage"], user_input)
+        result: AgentOutput = run_agent_impl(context, user_input)
 
         if result.data:
             context = {**context, **result.data}

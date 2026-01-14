@@ -1,4 +1,6 @@
 import os
+import re
+from typing import Dict
 
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled, AgentOutputSchema
 from openai import AsyncOpenAI
@@ -17,15 +19,27 @@ model = OpenAIResponsesModel(
 
 set_tracing_disabled(True)
 
+_PLACEHOLDER_RE = re.compile(r"\{\{(\w+)}}")
 
-async def run_agent(agent_stage: str, user_input: str) -> AgentOutput:
-    agent_id = get_stages_field(agent_stage, "agent_id")
+
+def render_instructions(template: str, context: dict) -> str:
+    def replace(match):
+        key = match.group(1)
+        value = context.get(key)
+        print(f"[render_instructions] replacing '{{{{{key}}}}}' → '{value}'")
+        return str(value) if value is not None else match.group(0)
+    return _PLACEHOLDER_RE.sub(replace, template)
+
+
+async def run_agent(context: Dict[str, str], user_input: str) -> AgentOutput:
+    agent_id = get_stages_field(context["stage"], "agent_id")
     if not agent_id:
-        raise ValueError(f"No agent_id configured for stage '{agent_stage}'")
+        raise ValueError(f"No agent_id configured for stage '{context["stage"]}'")
 
     instructions = get_agents_field(agent_id, "instructions")
     if not instructions:
         raise ValueError(f"No instructions configured for agent '{agent_id}'")
+    instructions = render_instructions(template=instructions, context=context)
 
     agent = Agent(
         name=agent_id,
@@ -37,6 +51,7 @@ async def run_agent(agent_stage: str, user_input: str) -> AgentOutput:
     result = await Runner.run(
         starting_agent=agent,
         input=user_input,
+        context={"language", }
     )
 
     output = result.final_output
