@@ -83,6 +83,9 @@ def start(request):
         if result.data:
             context = {**context, **result.data}
 
+        if result.memory is not None:
+            context = {**context, **result.memory}
+
         return response_tuple(
             {
                 "output": result.message,

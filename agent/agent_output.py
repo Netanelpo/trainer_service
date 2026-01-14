@@ -5,3 +5,4 @@ from typing import Any
 class AgentOutput:
     message: str
     data: dict[str, Any] | None
+    memory: dict[str, Any] | None
