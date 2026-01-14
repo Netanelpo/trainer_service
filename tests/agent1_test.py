@@ -4,7 +4,7 @@ from agents import Agent
 from dotenv import load_dotenv
 load_dotenv()
 
-from agent_impl import run_agent, model
+from agent.agent_impl import run_agent, model
 
 
 pytestmark = pytest.mark.asyncio

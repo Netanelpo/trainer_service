@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from agent_impl import run_agent
+from agent.agent_impl import run_agent
 
 pytestmark = pytest.mark.asyncio
 

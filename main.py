@@ -3,8 +3,9 @@ import asyncio
 import functions_framework
 from flask import jsonify, Response
 
-from agent_impl import run_agent
-from agent_ouput import AgentOutput
+from agent.agent_impl import run_agent
+from agent.agent_ouput import AgentOutput
+from agent.agent_router import agent_route
 
 
 def cors_headers():
@@ -34,11 +35,12 @@ def parse_raw(raw):
 
     user_input = (raw.get("input") or "").strip()
     context = raw.get("context") or {}
+    next_ = raw.get("next") or False
 
     if not isinstance(context, dict):
         raise ValueError("Invalid context.")
 
-    return user_input, context
+    return user_input, context, next_
 
 
 def first_message():
@@ -59,16 +61,17 @@ def start(request):
 
     try:
         raw = request.get_json(silent=True)
-        user_input, context = parse_raw(raw)
+        user_input, context, next_ = parse_raw(raw)
 
-        if not user_input:
+        if next_:
+            context["stage"] = agent_route(context["stage"])
+        elif not user_input:
             return response_tuple(
                 {
                     "output": "Please choose your learning language.",
                     "context": {
                         "stage": "LanguageChoiceAgent",
                         "language": None,
-                        "words": [],
                     },
                 },
                 200,
@@ -83,6 +86,7 @@ def start(request):
             {
                 "output": result.message,
                 "context": context,
+                "next": bool(result.data)
             },
             200,
         )
