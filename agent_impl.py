@@ -1,6 +1,6 @@
 import os
 
-from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled
+from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled, AgentOutputSchema
 from openai import AsyncOpenAI
 
 from agent_ouput import AgentOutput
@@ -31,7 +31,7 @@ async def run_agent(agent_stage: str, user_input: str) -> AgentOutput:
         name=agent_id,
         instructions=instructions,
         model=model,
-        output_type=AgentOutput,
+        output_type=AgentOutputSchema(AgentOutput, strict_json_schema=False),
     )
 
     result = await Runner.run(
