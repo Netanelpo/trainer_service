@@ -3,7 +3,7 @@ import os
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled, AgentOutputSchema
 from openai import AsyncOpenAI
 
-from agent_ouput import AgentOutput
+from agent.agent_output import AgentOutput
 from firestore_functions import get_agents_field, get_stages_field, get_config_field
 
 _client = AsyncOpenAI(

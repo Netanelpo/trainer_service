@@ -4,7 +4,7 @@ import functions_framework
 from flask import jsonify, Response
 
 from agent.agent_impl import run_agent
-from agent.agent_ouput import AgentOutput
+from agent.agent_output import AgentOutput
 from agent.agent_router import agent_route
 
 
