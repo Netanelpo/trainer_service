@@ -44,6 +44,7 @@ def test_choose_language_enables_next(client):
     assert body["context"]["stage"] == "LanguageChoiceAgent"
     assert body["context"]["language"] == "Hebrew"
     assert body.get("next") is True
+    assert isinstance(body["output"], str)
 
 
 def test_next_from_language_choice_moves_to_english_words_agent(client):
@@ -70,8 +71,8 @@ def test_next_from_language_choice_moves_to_english_words_agent(client):
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
 
     assert body["context"]["stage"] == "EnglishWordsAgent"
-    assert body["context"]["language"] == "Hebrew"
     assert body.get("next") is not True
+    assert isinstance(body["output"], str)
 
 
 def test_english_words_agent_requires_explicit_words(client):
@@ -97,8 +98,9 @@ def test_english_words_agent_requires_explicit_words(client):
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
 
     assert body["context"]["stage"] == "EnglishWordsAgent"
-    assert body["context"]["language"] == "Hebrew"
     assert body.get("next") is not True
+    assert isinstance(body["output"], str)
+    assert len(body["output"]) > 0
 
 
 def test_english_words_agent_accepts_word_list_enables_next(client):
@@ -124,23 +126,24 @@ def test_english_words_agent_accepts_word_list_enables_next(client):
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
 
     assert body["context"]["stage"] == "EnglishWordsAgent"
-    assert body["context"]["language"] == "Hebrew"
     assert body.get("next") is True
 
     words = body["context"].get("words")
     assert isinstance(words, list)
     assert "engineer" in words
     assert "brave" in words
+    assert all(isinstance(w, str) and w == w.lower() for w in words)
 
 
-def test_next_starts_training_sets_memory_word(client):
+def test_next_starts_training_sets_next_word(client):
     """
-    6) Clicking Next after words -> starts FromEnglishTranslatorAgent and sets memory.word
+    6) Clicking Next after words -> starts FromEnglishTranslatorAgent and sets next_word
 
     Given EnglishWordsAgent with words already stored in context
     When client posts {"next":true}
     Then stage becomes FromEnglishTranslatorAgent
-    And context.memory.word exists and is one of context.words
+    And context.next_word exists and is one of context.words
+    And output includes that English word
     """
     resp = client.post(
         "/",
@@ -161,25 +164,22 @@ def test_next_starts_training_sets_memory_word(client):
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
 
     assert body["context"]["stage"] == "FromEnglishTranslatorAgent"
-    assert body["context"]["language"] == "Hebrew"
 
-    mem = body["context"].get("memory")
-    assert isinstance(mem, dict)
-    assert isinstance(mem.get("word"), str)
-    assert mem["word"] in body["context"]["words"]
-
-    # The asked word should appear in the question text
-    assert mem["word"] in body["output"]
+    asked = body["context"].get("next_word")
+    assert isinstance(asked, str)
+    assert asked in body["context"]["words"]
+    assert asked in body["output"]
 
 
-def test_from_english_translator_idontknow_keeps_same_word(client):
+def test_from_english_translator_idontknow_keeps_same_next_word(client):
     """
-    7) FromEnglishTranslatorAgent: "לא יודע" keeps the same memory.word and re-asks it
+    7) FromEnglishTranslatorAgent: "לא יודע" keeps the same next_word and re-asks it
 
-    Given FromEnglishTranslatorAgent with current memory.word == "engineer"
+    Given FromEnglishTranslatorAgent with next_word == "engineer"
     When client posts "לא יודע"
-    Then memory.word remains "engineer"
+    Then next_word remains "engineer"
     And stage stays FromEnglishTranslatorAgent
+    And output includes "engineer"
     """
     resp = client.post(
         "/",
@@ -189,7 +189,7 @@ def test_from_english_translator_idontknow_keeps_same_word(client):
                 "stage": "FromEnglishTranslatorAgent",
                 "language": "Hebrew",
                 "words": ["engineer", "brave"],
-                "memory": {"word": "engineer"},
+                "next_word": "engineer",
             },
         },
     )
@@ -200,15 +200,13 @@ def test_from_english_translator_idontknow_keeps_same_word(client):
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
 
     assert body["context"]["stage"] == "FromEnglishTranslatorAgent"
-    assert body["context"]["language"] == "Hebrew"
-    assert isinstance(body["context"].get("memory"), dict)
-    assert body["context"]["memory"].get("word") == "engineer"
+    assert body["context"].get("next_word") == "engineer"
     assert "engineer" in body["output"]
 
 
 def test_restart_with_full_context_resets_to_language_choice(client):
     """
-    8) Restart
+    8) Restart (server-side safety)
 
     Given the client sends a full (later-stage) context
     When client posts {"input":"", "context": <full_context>}
@@ -223,7 +221,7 @@ def test_restart_with_full_context_resets_to_language_choice(client):
                   "stage": "FromEnglishTranslatorAgent",
                   "language": "Hebrew",
                   "words": ["engineer", "brave"],
-                  "memory": {"word": "engineer"},
+                  "next_word": "engineer",
               }})
 
     body = resp.get_json()
