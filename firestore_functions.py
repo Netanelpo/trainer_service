@@ -4,7 +4,7 @@ from typing import Union, List
 from google.cloud.firestore import DocumentSnapshot
 from google.cloud.firestore import SERVER_TIMESTAMP
 
-from infra import firestore_
+import infra
 
 AgentFieldValue = Union[str, List[str]]
 
@@ -24,7 +24,7 @@ def set_agents_field(doc_id: str, field: str, value: AgentFieldValue) -> None:
     elif not isinstance(value, str):
         raise ValueError("Value must be a string or list of strings")
 
-    firestore_.collection("agents").document(doc_id).set(
+    infra.database.collection("agents").document(doc_id).set(
         {
             field: value,
             "updated_at": SERVER_TIMESTAMP,
@@ -67,7 +67,7 @@ def get_field(
         doc_id: str,
         field: str,
 ):
-    doc_ref = firestore_.collection(collection).document(doc_id)
+    doc_ref = infra.database.collection(collection).document(doc_id)
     doc: DocumentSnapshot = doc_ref.get()
 
     if not doc.exists:
