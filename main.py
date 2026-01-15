@@ -68,6 +68,7 @@ def start(request):
 
     try:
         raw = request.get_json(silent=True)
+        print('RAW ', raw)
         user_input, context, next_ = parse_raw(raw)
 
         if next_:
