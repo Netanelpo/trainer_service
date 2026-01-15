@@ -5,14 +5,14 @@ import functions_framework
 from flask import jsonify, Response
 
 import infra
-from agent.agent_impl import run_agent
-from agent.agent_output import AgentOutput
-from agent.agent_router import agent_route
 
 if infra.database is None:
     from google.cloud import firestore
 
     infra.database = firestore.Client()
+from agent.agent_impl import run_agent
+from agent.agent_output import AgentOutput
+from agent.agent_router import agent_route
 
 
 def cors_headers():
@@ -68,6 +68,7 @@ def start(request):
 
     try:
         raw = request.get_json(silent=True)
+        print('RAW ', raw)
         user_input, context, next_ = parse_raw(raw)
 
         if next_:
