@@ -13,14 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-      - run: pip install -r requirements.txt pytest
+      - run: pip install -r requirements.txt pytest pytest-xdist
 
       - name: Set up Firebase credentials
         run: |
           echo "${{ secrets.SERVICE_ACCOUNT }}" | base64 --decode > tests/admin_sdk.json
 
-      - name: Set up Firebase credentials
-        run: |
-          echo "${{ secrets.SERVICE_ACCOUNT }}" | base64 --decode > tests/admin_sdk.json
-
-      - run: pytest
+      - run: pytest -n auto
