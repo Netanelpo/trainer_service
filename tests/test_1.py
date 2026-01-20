@@ -233,3 +233,17 @@ def test_restart_with_full_context_resets_to_language_choice(client):
     assert body["context"]["stage"] == "LanguageChoiceAgent"
     assert body["context"]["language"] is None
     assert body.get("next") is None
+
+
+def test_no_stage(client):
+    resp = client.post(
+        "/",
+        json={"input": "Hebrew", "context": {"language": None}},
+    )
+
+    body = resp.get_json()
+    print("BODY", body)
+    assert resp.status_code == 400
+    assert resp.headers["Access-Control-Allow-Origin"] == "*"
+
+    assert body == {'error': "stage is required."}

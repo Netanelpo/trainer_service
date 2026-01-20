@@ -47,6 +47,9 @@ def parse_raw(raw):
     if not isinstance(context, dict):
         raise ValueError("Invalid context.")
 
+    if not context.get("stage"):
+        raise ValueError("stage is required.")
+
     return user_input, context, next_
 
 
