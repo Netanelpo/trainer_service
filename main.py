@@ -73,7 +73,7 @@ def start(request):
 
         output = {
             "output": result.message,
-            **result.data
+            **(result.data or {}),
         }
         return response_tuple(
             output,
