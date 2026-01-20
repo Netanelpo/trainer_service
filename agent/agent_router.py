@@ -1,11 +1,12 @@
-def agent_route(stage: str) -> str:
-    if stage == "LanguageChoiceAgent":
+def get_agent_name(action: str) -> str:
+    if action == "SET_WORDS":
         return "EnglishWordsAgent"
-        # return "LearningGoalAgent"
-    elif stage == "EnglishWordsAgent":
-        return "FromEnglishTranslatorAgent"
-    elif stage == "FromEnglishTranslatorAgent":
-        return "ToEnglishTranslatorAgent"
-    elif stage == "ToEnglishTranslatorAgent":
-        return "ReviewerAgent"
-    raise ValueError(f"Unknown stage: {stage}")
+    # if action == "LanguageChoiceAgent":
+    #     return "EnglishWordsAgent"
+    # elif action == "EnglishWordsAgent":
+    #     return "FromEnglishTranslatorAgent"
+    # elif action == "FromEnglishTranslatorAgent":
+    #     return "ToEnglishTranslatorAgent"
+    # elif action == "ToEnglishTranslatorAgent":
+    #     return "ReviewerAgent"
+    raise ValueError(f"Unknown action: {action}")

@@ -6,7 +6,7 @@ from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled, Ag
 from openai import AsyncOpenAI
 
 from agent.agent_output import AgentOutput
-from firestore_functions import get_agents_field, get_stages_field, get_config_field
+from firestore_functions import get_agents_field, get_config_field
 
 _client = AsyncOpenAI(
     api_key=os.environ["OPENAI_API_KEY"]
@@ -28,18 +28,15 @@ def render_instructions(template: str, context: dict) -> str:
         value = context.get(key)
         print(f"[render_instructions] replacing '{{{{{key}}}}}' → '{value}'")
         return str(value) if value is not None else match.group(0)
+
     return _PLACEHOLDER_RE.sub(replace, template)
 
 
-async def run_agent(context: Dict[str, str], user_input: str) -> AgentOutput:
-    agent_id = get_stages_field(context["stage"], "agent_id")
-    if not agent_id:
-        raise ValueError(f"No agent_id configured for stage '{context["stage"]}'")
-
+async def run_agent(agent_id: str, data: Dict[str, str]) -> AgentOutput:
     instructions = get_agents_field(agent_id, "instructions")
     if not instructions:
         raise ValueError(f"No instructions configured for agent '{agent_id}'")
-    instructions = render_instructions(template=instructions, context=context)
+    instructions = render_instructions(template=instructions, context=data)
 
     agent = Agent(
         name=agent_id,
@@ -50,7 +47,7 @@ async def run_agent(context: Dict[str, str], user_input: str) -> AgentOutput:
 
     result = await Runner.run(
         starting_agent=agent,
-        input=user_input,
+        input=data["input"],
         context={"language", }
     )
 
