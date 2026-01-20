@@ -52,6 +52,41 @@ def test_no_language(client):
     assert body == {'error': "language is required."}
 
 
+def test_words_empty(client):
+    resp = client.post(
+        "/",
+        json={
+            'input': 'hi',
+            'action': 'SET_WORDS',
+            'language': 'Hebrew',
+        },
+    )
+
+    body = resp.get_json()
+    print("BODY", body)
+    assert resp.status_code == 200
+    assert resp.headers["Access-Control-Allow-Origin"] == "*"
+    assert body["output"]
+    assert not body.get("words")
+
+
+def test_words(client):
+    resp = client.post(
+        "/",
+        json={
+            'input': 'apple, sleep, go, dance',
+            'action': 'SET_WORDS',
+            'language': 'Hebrew',
+        },
+    )
+
+    body = resp.get_json()
+    print("BODY", body)
+    assert resp.status_code == 200
+    assert resp.headers["Access-Control-Allow-Origin"] == "*"
+    assert body["output"]
+    # assert body["words"] == {"apple", "sleep", "go", "dance"}
+
 # def test_initial_load(client):
 #     """
 #     1) Initial load
