@@ -2,7 +2,6 @@ def test_no_input(client):
     resp = client.post(
         "/",
         json={
-            'input': '',
             'action': 'SET_WORDS',
             'language': 'Hebrew',
         },

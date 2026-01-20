@@ -46,8 +46,7 @@ def validate_data(data):
     if not isinstance(data, dict):
         raise ValueError("Invalid request format.")
 
-    user_input = (data.get("input") or "").strip()
-    if not user_input:
+    if data.get("input") is None:
         raise ValueError("input is required.")
 
     action = data.get("action")
