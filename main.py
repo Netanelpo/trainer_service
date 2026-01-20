@@ -12,7 +12,6 @@ if infra.database is None:
     infra.database = firestore.Client()
 from agent.agent_impl import run_agent
 from agent.agent_output import AgentOutput
-from agent.agent_router import agent_route
 
 
 def cors_headers():
@@ -41,16 +40,20 @@ def parse_raw(raw):
         raise ValueError("Invalid request format.")
 
     user_input = (raw.get("input") or "").strip()
+    if not user_input:
+        raise ValueError("input is required.")
+
+    action = raw.get("action")
+    if not action:
+        raise ValueError("action is required.")
+
+    language = raw.get("language")
+    if not language:
+        raise ValueError("language is required.")
+
     context = raw.get("context") or {}
-    next_ = raw.get("next") or False
 
-    if not isinstance(context, dict):
-        raise ValueError("Invalid context.")
-
-    if not context.get("stage"):
-        raise ValueError("stage is required.")
-
-    return user_input, context, next_
+    return user_input, action, language, context
 
 
 def first_message():
@@ -72,21 +75,7 @@ def start(request):
     try:
         raw = request.get_json(silent=True)
         print('RAW ', raw)
-        user_input, context, next_ = parse_raw(raw)
-
-        if next_:
-            context["stage"] = agent_route(context["stage"])
-        elif not user_input:
-            return response_tuple(
-                {
-                    "output": "Please choose your learning language.",
-                    "context": {
-                        "stage": "LanguageChoiceAgent",
-                        "language": None,
-                    },
-                },
-                200,
-            )
+        user_input, action, language, context = parse_raw(raw)
 
         result: AgentOutput = run_agent_impl(context, user_input)
 
