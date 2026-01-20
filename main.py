@@ -71,17 +71,12 @@ def start(request):
 
         result: AgentOutput = run_agent_impl(data)
 
-        # if result.data:
-        #     context = {**context, **result.data}
-        #
-        # if result.memory is not None:
-        #     context = {**context, **result.memory}
-
+        output = {
+            "output": result.message,
+            **(result.data or {}),
+        }
         return response_tuple(
-            {
-                "output": result.message,
-                # "context": context,
-            },
+            output,
             200,
         )
 
