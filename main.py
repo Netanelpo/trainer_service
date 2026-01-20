@@ -103,7 +103,7 @@ def start(request):
         )
 
     except ValueError as e:
-        return response_tuple({"output": str(e)}, 400)
+        return response_tuple({"error": str(e)}, 400)
 
     except Exception as e:
-        return response_tuple({"output": str(e)}, 500)
+        return response_tuple({"error": str(e)}, 500)
