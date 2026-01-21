@@ -1,16 +1,32 @@
 import os
 import re
+from dataclasses import dataclass
+from typing import Any
 from typing import Dict
 
 from agents import Agent, Runner, OpenAIResponsesModel, set_tracing_disabled, AgentOutputSchema
 from openai import AsyncOpenAI
 
-from agent.agent_output import AgentOutput
 from firestore_functions import get_agents_field, get_config_field
 
 _client = AsyncOpenAI(
     api_key=os.environ["OPENAI_API_KEY"]
 )
+
+
+def get_agent_name(action: str) -> str:
+    if action == "SET_WORDS":
+        return "EnglishWordsAgent"
+    if action == "EN_TO_TARGET_TRAINING":
+        return "FromEnglishTranslatorAgent"
+    raise ValueError(f"Unknown action: {action}")
+
+
+@dataclass
+class AgentOutput:
+    message: str
+    data: dict[str, Any] | None
+
 
 model = OpenAIResponsesModel(
     model=get_config_field("agents", "model"),
@@ -48,7 +64,6 @@ async def run_agent(agent_id: str, data: Dict[str, str]) -> AgentOutput:
     result = await Runner.run(
         starting_agent=agent,
         input=data["input"],
-        context={"language", }
     )
 
     output = result.final_output
