@@ -1,5 +1,7 @@
+words = ['apple', 'banana', 'orange', 'kiwi', 'mango', 'pineapple']
+
+
 def test_start(client):
-    words = ['apple', 'banana', 'orange', 'kiwi', 'mango', 'pineapple']
     resp = client.post(
         "/",
         json={
@@ -16,6 +18,44 @@ def test_start(client):
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
     assert body['next_word'] in words
 
+
+def test_wrong_answer(client):
+    resp = client.post(
+        "/",
+        json={
+            'action': 'EN_TO_TARGET_TRAINING',
+            'language': 'Hebrew',
+            'input': 'hi',
+            'next_word': 'orange',
+            'words': words,
+        },
+    )
+
+    body = resp.get_json()
+    print("BODY", body)
+    assert resp.status_code == 200
+    assert resp.headers["Access-Control-Allow-Origin"] == "*"
+    assert body['next_word'] == 'orange'
+
+
+def test_correct_answer(client):
+    resp = client.post(
+        "/",
+        json={
+            'action': 'EN_TO_TARGET_TRAINING',
+            'language': 'Hebrew',
+            'input': 'תפוז',
+            'next_word': 'orange',
+            'words': words,
+        },
+    )
+
+    body = resp.get_json()
+    print("BODY", body)
+    assert resp.status_code == 200
+    assert resp.headers["Access-Control-Allow-Origin"] == "*"
+    assert body['next_word'] != 'orange'
+    assert body['next_word'] in words
 
 # def test_no_input(client):
 #     resp = client.post(
