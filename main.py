@@ -116,7 +116,7 @@ def render_template(template: str, context: AgentContext) -> str:
     return _PLACEHOLDER_RE.sub(replace, template)
 
 
-async def instructions_loader(run_ctx: RunContextWrapper[AgentContext]) -> str:
+async def instructions_loader(run_ctx: RunContextWrapper[AgentContext], agent: Agent) -> str:
     """
     Dynamically loads instructions from Firestore and renders them.
     """
