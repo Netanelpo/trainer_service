@@ -85,3 +85,4 @@ def test_words(client):
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
     assert body["output"]
     assert set(body["words"]) == {"apple", "sleep", "go", "dance"}
+    assert set(body["remaining"]) == {"apple", "sleep", "go", "dance"}
