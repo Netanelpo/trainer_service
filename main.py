@@ -1,85 +1,19 @@
 import dataclasses
-import random
 import re
-from typing import List, Optional
 
 import functions_framework
 from agents import Agent, Runner
 from agents.run_context import RunContextWrapper
-from agents.tool import function_tool
 from flask import jsonify, Response, Request
 
 import infra
 from infra.firestore_functions import get_stages_field, get_agents_field, get_config_field
+from infra.function_tools import AgentContext, set_words, pick_next_word, done_training
 
 if infra.database is None:
     from google.cloud import firestore
 
     infra.database = firestore.Client()
-
-
-# -------------------------------------------------------------------------
-# CONTEXT DEFINITION
-# -------------------------------------------------------------------------
-
-@dataclasses.dataclass
-class AgentContext:
-    """Context passed to the agent and instructions."""
-    input_text: str
-    action: str
-    language: str
-    words: List[str] = dataclasses.field(default_factory=list)
-    remaining: List[str] = dataclasses.field(default_factory=list)
-    next_word: Optional[str] = None
-
-
-# -------------------------------------------------------------------------
-# TOOLS
-# -------------------------------------------------------------------------
-
-@function_tool
-def set_words(context: RunContextWrapper[AgentContext], words: List[str]) -> str:
-    """
-    Save the list of English words the student wants to learn.
-    """
-    cleaned_words = [str(w).strip().lower() for w in words if w]
-
-    if not cleaned_words:
-        return "Error: No valid words provided."
-
-    # Update the context state so it's returned to the client
-    context.context.words = cleaned_words
-    context.context.remaining = cleaned_words
-
-    return f"Successfully saved {len(cleaned_words)} words."
-
-
-@function_tool
-def pick_next_word(context: RunContextWrapper[AgentContext]) -> str:
-    """
-    Selects a random word from the existing word list in the context
-    and removes it from the remaining list.
-    """
-    print("pick_next_word")
-    current_words = context.context.remaining
-
-    valid_words = [w for w in current_words if w]
-    if not valid_words:
-        return "Error: Word list is empty in the current context."
-
-    selection = random.choice(valid_words)
-
-    # Remove the chosen word from remaining (one occurrence)
-    try:
-        current_words.remove(selection)
-    except ValueError:
-        pass  # in case it's not found for some reason
-
-    # Update state
-    print(selection)
-    context.context.next_word = selection
-    return f"Next word selected: {selection}"
-
 
 # -------------------------------------------------------------------------
 # INSTRUCTION RENDERERS
@@ -167,7 +101,7 @@ def start(request: Request):
             name=get_stages_field(data["action"], "agent_id"),
             model=get_config_field("agents", "model") or "gpt-4o",
             instructions=instructions_loader,
-            tools=[set_words, pick_next_word],
+            tools=[set_words, pick_next_word, done_training],
             tool_use_behavior="run_llm_again"
         )
 
@@ -184,6 +118,7 @@ def start(request: Request):
             "words": ctx.words,
             "next_word": ctx.next_word,
             "remaining": ctx.remaining,
+            "done_training": ctx.done_training,
         }
 
         return response_tuple(output_payload, 200)
