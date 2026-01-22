@@ -5,7 +5,7 @@ def test_start(client):
     resp = client.post(
         "/",
         json={
-            'action': 'EN_TO_TARGET_TRAINING',
+            'action': 'EN_TO_TARGET_START_TRAINING',
             'language': 'Hebrew',
             'input': '',
             'words': words,
@@ -23,7 +23,7 @@ def test_start(client):
     assert body['words'] == words
     words.remove(body['next_word'])
     assert body['remaining'] == words
-
+    assert body.get('done_training') is None
 
 def test_wrong_answer(client):
     resp = client.post(
@@ -47,6 +47,7 @@ def test_wrong_answer(client):
     assert 'orange' in body['output']
     assert body['words'] == words
     assert body['remaining'] == words
+    assert body.get('done_training') is None
 
 
 def test_correct_answer(client):
@@ -73,91 +74,53 @@ def test_correct_answer(client):
     assert body['words'] == words
     words.remove(body['next_word'])
     assert body['remaining'] == words
+    assert body.get('done_training') is None
 
-# def test_no_input(client):
-#     resp = client.post(
-#         "/",
-#         json={
-#             'action': 'SET_WORDS',
-#             'language': 'Hebrew',
-#         },
-#     )
-#
-#     body = resp.get_json()
-#     print("BODY", body)
-#     assert resp.status_code == 400
-#     assert resp.headers["Access-Control-Allow-Origin"] == "*"
-#
-#     assert body == {'error': "input is required."}
-#
-#
-# def test_no_action(client):
-#     resp = client.post(
-#         "/",
-#         json={
-#             'input': 'hi',
-#             'action': '',
-#             'language': 'Hebrew',
-#         },
-#     )
-#
-#     body = resp.get_json()
-#     print("BODY", body)
-#     assert resp.status_code == 400
-#     assert resp.headers["Access-Control-Allow-Origin"] == "*"
-#
-#     assert body == {'error': "action is required."}
-#
-#
-# def test_no_language(client):
-#     resp = client.post(
-#         "/",
-#         json={
-#             'input': 'hi',
-#             'action': 'SET_WORDS',
-#             'language': '',
-#         },
-#     )
-#
-#     body = resp.get_json()
-#     print("BODY", body)
-#     assert resp.status_code == 400
-#     assert resp.headers["Access-Control-Allow-Origin"] == "*"
-#
-#     assert body == {'error': "language is required."}
-#
-#
-# def test_words_empty(client):
-#     resp = client.post(
-#         "/",
-#         json={
-#             'input': 'hi',
-#             'action': 'SET_WORDS',
-#             'language': 'Hebrew',
-#         },
-#     )
-#
-#     body = resp.get_json()
-#     print("BODY", body)
-#     assert resp.status_code == 200
-#     assert resp.headers["Access-Control-Allow-Origin"] == "*"
-#     assert body["output"]
-#     assert not body.get("words")
-#
-#
-# def test_words(client):
-#     resp = client.post(
-#         "/",
-#         json={
-#             'input': 'apple, sleep, go, dance',
-#             'action': 'SET_WORDS',
-#             'language': 'Hebrew',
-#         },
-#     )
-#
-#     body = resp.get_json()
-#     print("BODY", body)
-#     assert resp.status_code == 200
-#     assert resp.headers["Access-Control-Allow-Origin"] == "*"
-#     assert body["output"]
-#     assert set(body["words"]) == {"apple", "sleep", "go", "dance"}
+
+def test_last_wrong_answer(client):
+    resp = client.post(
+        "/",
+        json={
+            'action': 'EN_TO_TARGET_LAST_QUESTION',
+            'language': 'Hebrew',
+            'input': 'hi',
+            'next_word': 'strawberry',
+            'words': words,
+            'remaining': words,
+        },
+    )
+
+    body = resp.get_json()
+    print("BODY", body)
+    assert resp.status_code == 200
+    assert resp.headers["Access-Control-Allow-Origin"] == "*"
+
+    assert body['next_word'] == 'strawberry'
+    assert 'strawberry' in body['output']
+    assert body['words'] == words
+    assert body['remaining'] == words
+    assert body.get('done_training') is None
+
+
+def test_last_correct_answer(client):
+    resp = client.post(
+        "/",
+        json={
+            'action': 'EN_TO_TARGET_LAST_QUESTION',
+            'language': 'Hebrew',
+            'input': 'תות',
+            'next_word': 'strawberry',
+            'words': words,
+            'remaining': words,
+        },
+    )
+
+    body = resp.get_json()
+    print("BODY", body)
+    assert resp.status_code == 200
+    assert resp.headers["Access-Control-Allow-Origin"] == "*"
+
+    assert body['next_word'] == 'strawberry'
+    assert body['words'] == words
+    assert body['remaining'] == words
+    assert body['done_training'] == True
