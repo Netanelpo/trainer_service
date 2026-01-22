@@ -1,7 +1,7 @@
-words = ['apple', 'banana', 'orange', 'kiwi', 'mango', 'pineapple']
 
 
 def test_start(client):
+    words = ['apple', 'banana', 'orange', 'kiwi', 'mango', 'pineapple']
     resp = client.post(
         "/",
         json={
@@ -26,6 +26,7 @@ def test_start(client):
     assert body.get('done_training') is None
 
 def test_wrong_answer(client):
+    words = ['apple', 'banana', 'orange', 'kiwi', 'mango', 'pineapple']
     resp = client.post(
         "/",
         json={
@@ -51,6 +52,7 @@ def test_wrong_answer(client):
 
 
 def test_correct_answer(client):
+    words = ['apple', 'banana', 'orange', 'kiwi', 'mango', 'pineapple']
     resp = client.post(
         "/",
         json={
@@ -78,6 +80,7 @@ def test_correct_answer(client):
 
 
 def test_last_wrong_answer(client):
+    words = ['apple', 'banana', 'orange', 'kiwi', 'mango', 'pineapple']
     resp = client.post(
         "/",
         json={
@@ -103,6 +106,7 @@ def test_last_wrong_answer(client):
 
 
 def test_last_correct_answer(client):
+    words = ['apple', 'banana', 'orange', 'kiwi', 'mango', 'pineapple']
     resp = client.post(
         "/",
         json={
