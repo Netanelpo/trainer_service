@@ -1,7 +1,7 @@
 import dataclasses
 import random
 import re
-from typing import Any, List, Optional
+from typing import List, Optional
 
 import functions_framework
 from agents import Agent, Runner
@@ -10,31 +10,12 @@ from agents.tool import function_tool
 from flask import jsonify, Response, Request
 
 import infra
+from infra.firestore_functions import get_stages_field, get_agents_field, get_config_field
 
 if infra.database is None:
     from google.cloud import firestore
 
     infra.database = firestore.Client()
-
-
-def get_field(collection: str, doc_id: str, field: str) -> Any:
-    doc_ref = infra.database.collection(collection).document(doc_id)
-    doc = doc_ref.get()
-    if not doc.exists:
-        return None
-    return doc.to_dict().get(field)
-
-
-def get_agents_field(doc_id: str, field: str) -> Any:
-    return get_field("agents", doc_id, field)
-
-
-def get_stages_field(doc_id: str, field: str) -> Any:
-    return get_field("stages", doc_id, field)
-
-
-def get_config_field(doc_id: str, field: str) -> Any:
-    return get_field("config", doc_id, field)
 
 
 # -------------------------------------------------------------------------
@@ -48,6 +29,7 @@ class AgentContext:
     action: str
     language: str
     words: List[str] = dataclasses.field(default_factory=list)
+    remaining: List[str] = dataclasses.field(default_factory=list)
     next_word: Optional[str] = None
 
 
@@ -67,6 +49,7 @@ def set_words(context: RunContextWrapper[AgentContext], words: List[str]) -> str
 
     # Update the context state so it's returned to the client
     context.context.words = cleaned_words
+    context.context.remaining = cleaned_words
 
     return f"Successfully saved {len(cleaned_words)} words."
 
@@ -74,20 +57,25 @@ def set_words(context: RunContextWrapper[AgentContext], words: List[str]) -> str
 @function_tool
 def pick_next_word(context: RunContextWrapper[AgentContext]) -> str:
     """
-    Selects a random word from the existing word list in the context.
+    Selects a random word from the existing word list in the context
+    and removes it from the remaining list.
     """
-    # 1. Access words directly from the context (no argument needed from Agent)
     print("pick_next_word")
-    current_words = context.context.words
+    current_words = context.context.remaining
 
     valid_words = [w for w in current_words if w]
     if not valid_words:
         return "Error: Word list is empty in the current context."
 
-    # 2. Simple random choice (Exclusion logic removed)
     selection = random.choice(valid_words)
 
-    # 3. Update state
+    # Remove the chosen word from remaining (one occurrence)
+    try:
+        current_words.remove(selection)
+    except ValueError:
+        pass  # in case it's not found for some reason
+
+    # Update state
     print(selection)
     context.context.next_word = selection
     return f"Next word selected: {selection}"
@@ -171,7 +159,8 @@ def start(request: Request):
             action=data["action"],
             language=data["language"],
             words=data.get("words", []),
-            next_word=data.get("next_word")
+            next_word=data.get("next_word"),
+            remaining=data.get("remaining"),
         )
 
         agent = Agent[AgentContext](
@@ -193,7 +182,8 @@ def start(request: Request):
         output_payload = {
             "output": str(result.final_output),
             "words": ctx.words,
-            "next_word": ctx.next_word
+            "next_word": ctx.next_word,
+            "remaining": ctx.remaining,
         }
 
         return response_tuple(output_payload, 200)

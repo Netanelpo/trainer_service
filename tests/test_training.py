@@ -9,6 +9,7 @@ def test_start(client):
             'language': 'Hebrew',
             'input': '',
             'words': words,
+            'remaining': words,
         },
     )
 
@@ -16,7 +17,12 @@ def test_start(client):
     print("BODY", body)
     assert resp.status_code == 200
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
+
     assert body['next_word'] in words
+    assert body['next_word'] in body['output']
+    assert body['words'] == words
+    words.remove(body['next_word'])
+    assert body['remaining'] == words
 
 
 def test_wrong_answer(client):
@@ -28,6 +34,7 @@ def test_wrong_answer(client):
             'input': 'hi',
             'next_word': 'orange',
             'words': words,
+            'remaining': words,
         },
     )
 
@@ -35,7 +42,11 @@ def test_wrong_answer(client):
     print("BODY", body)
     assert resp.status_code == 200
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
+
     assert body['next_word'] == 'orange'
+    assert 'orange' in body['output']
+    assert body['words'] == words
+    assert body['remaining'] == words
 
 
 def test_correct_answer(client):
@@ -44,9 +55,10 @@ def test_correct_answer(client):
         json={
             'action': 'EN_TO_TARGET_TRAINING',
             'language': 'Hebrew',
-            'input': 'תפוז',
-            'next_word': 'orange',
+            'input': 'תות',
+            'next_word': 'strawberry',
             'words': words,
+            'remaining': words,
         },
     )
 
@@ -54,8 +66,13 @@ def test_correct_answer(client):
     print("BODY", body)
     assert resp.status_code == 200
     assert resp.headers["Access-Control-Allow-Origin"] == "*"
-    assert body['next_word'] != 'orange'
+
+    assert body['next_word'] != 'strawberry'
     assert body['next_word'] in words
+    assert body['next_word'] in body['output']
+    assert body['words'] == words
+    words.remove(body['next_word'])
+    assert body['remaining'] == words
 
 # def test_no_input(client):
 #     resp = client.post(
